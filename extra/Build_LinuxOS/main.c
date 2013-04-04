@@ -18,6 +18,7 @@
 
 #include <inttypes.h>
 #include "atag.h"
+#include "tux.h"
 
 extern const unsigned char initrd[];
 extern const unsigned int initrd_size;
@@ -53,6 +54,30 @@ void nputs(const char *ptr) {
 #else
 #define nputs(x)
 #endif
+
+void draw_tux(unsigned short x, unsigned short y) {
+	uint16_t *ptr = *(uint16_t * volatile *)0xC0000010;
+	int i, j;
+	if (!is_cx) return;
+
+	ptr += (y*320) + x;
+
+	for (i=0; i<tux_height; i++) {
+		for (j=0; j<tux_width; j++) {
+			uint8_t pix[3];
+			HEADER_PIXEL(tux_header_data,pix);
+
+			pix[0] >>= 3;
+			pix[1] >>= 2;
+			pix[2] >>= 3;
+			if (!(pix[1] == (1<<6) - 1 && !pix[0] && !pix[2])) {
+				*ptr = pix[2] | pix[1]<<5 | pix[0]<<11;
+			}
+			ptr++;
+		}
+		ptr += 320 - tux_width;
+	}
+}
 
 void nstrcpy(char *dst, const char *src) {
 	while ( (*dst++ = *src++) );
@@ -172,6 +197,7 @@ classic:
 
 int main(void) {
 	detect_mach();
+	draw_tux(139,150);
 	detect_serialnr();
 	build_atags();
 
